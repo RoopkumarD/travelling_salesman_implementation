@@ -21,6 +21,7 @@ def get_neighbours(walk: str):
 
 
 if __name__ == "__main__":
-    k = random_walk(1, [2, 3, 4])
-    print(k)
+    # k = random_walk(1, [2, 3, 4])
+    # print(k)
+    k = "1324"
     print(get_neighbours(k))
