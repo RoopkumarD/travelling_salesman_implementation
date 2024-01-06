@@ -1,5 +1,8 @@
+from functools import cache
 from random import shuffle
-from typing import List
+from typing import List, Tuple
+
+from profiling import profile
 
 
 class TSP:
@@ -8,35 +11,30 @@ class TSP:
         self.weights = weights
         self.length = len(nodes)
         self.start = 0
-        self.cost_function_cache = dict()
         self.amount_of_neighbour_checked = 0
 
-    def cost_function(self, walk: List[int]):
-        check = tuple(walk)
-        if check in self.cost_function_cache:
-            return self.cost_function_cache[check]
-        else:
-            added_zero = list(walk)
-            added_zero += [0]
-            # self.length is previous length before adding 0
-            val = sum(
-                [
-                    self.weights[added_zero[s]][added_zero[s + 1]]
-                    for s in range(self.length)
-                ]
-            )
-            self.cost_function_cache[tuple(walk)] = val
-            return val
+    @cache
+    def cost_function(self, walk: Tuple[int, ...]):
+        # self.length is previous length before adding 0
+        val = 0
+        for s in range(self.length - 1):
+            val += self.weights[walk[s]][walk[s + 1]]
+        val += self.weights[walk[-1]][self.start]
+        return val
 
-    def random_walk(self, start: int, other_locations: List[int]) -> List[int]:
+    def random_walk(self, start: int, other_locations: List[int]) -> Tuple[int, ...]:
         walk = [start]
         shuffle(other_locations)
         walk += other_locations
-        return walk
+        return tuple(walk)
 
-    def get_neighbours(self, walk: List[int]):
-        # 2-opt strategy
-        all_neighbours = []
+    def get_nxt_lower(self, walk: Tuple[int, ...], current_cost: int):
+        # 2-opt strategy, used chatgpt to understand definition of 2-opt
+        # which is taking any two non adjacent edges and swapping them
+        # swap them such that, [i, i+1] and [j, j+1] the edge between them is swapped such that
+        # [i, j] and [i+1, j+1]
+        current_path = tuple()
+        changed = False
 
         for i in range(self.length - 1):
             max_combine = self.length - 3
@@ -44,53 +42,48 @@ class TSP:
                 max_combine = self.length - (i + 2)
 
             for j in range(i + 2, i + 2 + max_combine):
-                all_neighbours.append(
+                self.amount_of_neighbour_checked += 1
+                new_path = (
                     walk[: i + 1]
-                    + [walk[j]]
-                    + list(reversed(walk[i + 1 : j]))
+                    + (walk[j],)
+                    + tuple(reversed(walk[i + 1 : j]))
                     + walk[j + 1 :]
                 )
+                new_cost = self.cost_function(new_path)
 
-        return all_neighbours
+                if new_cost < current_cost:
+                    changed = True
+                    current_cost = new_cost
+                    current_path = new_path
 
-    def index_to_node(self, index: List[int]):
-        new_index = list(index)
-        new_index += [0]
-        return " -> ".join([self.nodes[i] for i in new_index])
+        return current_path, current_cost, changed
 
-    def one_hill_climbing(self):
-        other_locations = list(range(1, self.length))
-        current_path = self.random_walk(start=0, other_locations=other_locations)
+    def hill_climb(self):
+        current_path = self.random_walk(
+            start=0, other_locations=list(range(1, self.length))
+        )
         lower_cost = self.cost_function(current_path)
         current_is_changed = True
         self.amount_of_neighbour_checked += 1
 
         while current_is_changed == True:
             current_is_changed = False
-            new_lower = 0
-            associated_path = []
+            new_path, new_lower, changed = self.get_nxt_lower(current_path, lower_cost)
 
-            all_neighbours = self.get_neighbours(current_path)
-            self.amount_of_neighbour_checked += len(all_neighbours)
-            for n in all_neighbours:
-                cost = self.cost_function(n)
-                if cost < lower_cost:
-                    associated_path = n
-                    new_lower = cost
-
-            if new_lower != 0:
+            if changed == True:
                 lower_cost = new_lower
-                current_path = associated_path
+                current_path = new_path
                 current_is_changed = True
 
         return lower_cost, current_path
 
-    def hill_climb(self, iterations: int = 10):
+    @profile
+    def random_restart_with_hill_climb(self, iterations: int = 10):
         lower = 1000000000000
         a = None
 
         for _ in range(iterations):
-            c, p = self.one_hill_climbing()
+            c, p = self.hill_climb()
             if c < lower:
                 lower = c
                 a = p

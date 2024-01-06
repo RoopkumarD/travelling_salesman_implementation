@@ -20,6 +20,6 @@ cost = [
 nodes = [str(i) for i in range(len(cost))]
 tsp = TSP(nodes, cost)
 
-print(tsp.hill_climb(10))
+print(tsp.random_restart_with_hill_climb(10))
 
 print(tsp.amount_of_neighbour_checked)
