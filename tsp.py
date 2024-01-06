@@ -9,6 +9,7 @@ class TSP:
         self.length = len(nodes)
         self.start = 0
         self.cost_function_cache = dict()
+        self.amount_of_neighbour = 0
 
     def cost_function(self, walk: List[int]):
         check = tuple(walk)
@@ -34,10 +35,12 @@ class TSP:
         return walk
 
     def get_neighbours(self, walk: List[int]):
+        # swapping position
+        # amount of states checking is around 52_000 to get real ans
         all_neighbours = [
-            walk[: i + 1] + walk[j:] + walk[i + 1 : j]
-            for i in range(self.length - 2)
-            for j in range(i + 2, self.length)
+            walk[:i] + [walk[j]] + walk[i + 1 : j] + [walk[i]] + walk[j + 1 :]
+            for i in range(1, self.length - 1)
+            for j in range(i + 1, self.length)
         ]
         return all_neighbours
 
@@ -51,6 +54,7 @@ class TSP:
         current_path = self.random_walk(start=0, other_locations=other_locations)
         lower_cost = self.cost_function(current_path)
         current_is_changed = True
+        self.amount_of_neighbour += 1
 
         while current_is_changed == True:
             current_is_changed = False
@@ -58,6 +62,7 @@ class TSP:
             associated_path = []
 
             all_neighbours = self.get_neighbours(current_path)
+            self.amount_of_neighbour += len(all_neighbours)
             for n in all_neighbours:
                 cost = self.cost_function(n)
                 if cost < lower_cost:

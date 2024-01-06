@@ -18,14 +18,16 @@ cost = [
 
 
 nodes = [str(i) for i in range(len(cost))]
+tsp = TSP(nodes, cost)
+
 lower = 10000000
 a = None
 
-for _ in range(500):
-    tsp = TSP(nodes, cost)
+for _ in range(40):
     c, p = tsp.solve()
     if c < lower:
         lower = c
         a = p
 
 print(a, lower)
+print(tsp.amount_of_neighbour)
