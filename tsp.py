@@ -9,7 +9,7 @@ class TSP:
         self.length = len(nodes)
         self.start = 0
         self.cost_function_cache = dict()
-        self.amount_of_neighbour = 0
+        self.amount_of_neighbour_checked = 0
 
     def cost_function(self, walk: List[int]):
         check = tuple(walk)
@@ -35,13 +35,22 @@ class TSP:
         return walk
 
     def get_neighbours(self, walk: List[int]):
-        # swapping position
-        # amount of states checking is around 52_000 to get real ans
-        all_neighbours = [
-            walk[:i] + [walk[j]] + walk[i + 1 : j] + [walk[i]] + walk[j + 1 :]
-            for i in range(1, self.length - 1)
-            for j in range(i + 1, self.length)
-        ]
+        # 2-opt strategy
+        all_neighbours = []
+
+        for i in range(self.length - 1):
+            max_combine = self.length - 3
+            if self.length - (i + 2) < max_combine:
+                max_combine = self.length - (i + 2)
+
+            for j in range(i + 2, i + 2 + max_combine):
+                all_neighbours.append(
+                    walk[: i + 1]
+                    + [walk[j]]
+                    + list(reversed(walk[i + 1 : j]))
+                    + walk[j + 1 :]
+                )
+
         return all_neighbours
 
     def index_to_node(self, index: List[int]):
@@ -49,12 +58,12 @@ class TSP:
         new_index += [0]
         return " -> ".join([self.nodes[i] for i in new_index])
 
-    def solve(self):
+    def one_hill_climbing(self):
         other_locations = list(range(1, self.length))
         current_path = self.random_walk(start=0, other_locations=other_locations)
         lower_cost = self.cost_function(current_path)
         current_is_changed = True
-        self.amount_of_neighbour += 1
+        self.amount_of_neighbour_checked += 1
 
         while current_is_changed == True:
             current_is_changed = False
@@ -62,7 +71,7 @@ class TSP:
             associated_path = []
 
             all_neighbours = self.get_neighbours(current_path)
-            self.amount_of_neighbour += len(all_neighbours)
+            self.amount_of_neighbour_checked += len(all_neighbours)
             for n in all_neighbours:
                 cost = self.cost_function(n)
                 if cost < lower_cost:
@@ -75,3 +84,15 @@ class TSP:
                 current_is_changed = True
 
         return lower_cost, current_path
+
+    def hill_climb(self, iterations: int = 10):
+        lower = 1000000000000
+        a = None
+
+        for _ in range(iterations):
+            c, p = self.one_hill_climbing()
+            if c < lower:
+                lower = c
+                a = p
+
+        return a, lower
