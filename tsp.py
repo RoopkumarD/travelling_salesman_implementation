@@ -28,33 +28,48 @@ class TSP:
         walk += other_locations
         return tuple(walk)
 
-    def get_nxt_lower(self, walk: Tuple[int, ...], current_cost: int):
+    def get_nxt_lower(self, walk: Tuple[int, ...]):
         # 2-opt strategy, used chatgpt to understand definition of 2-opt
         # which is taking any two non adjacent edges and swapping them
         # swap them such that, [i, i+1] and [j, j+1] the edge between them is swapped such that
         # [i, j] and [i+1, j+1]
         current_path = tuple()
         changed = False
+        current_delta_cost = 0
+        current_cost = 0
 
         for i in range(self.length - 1):
             max_combine = self.length - 3
             if self.length - (i + 2) < max_combine:
-                max_combine = self.length - (i + 2)
+                max_combine = self.length
+            else:
+                max_combine = (i + 2) + max_combine
 
-            for j in range(i + 2, i + 2 + max_combine):
+            for j in range(i + 2, max_combine):
                 self.amount_of_neighbour_checked += 1
-                new_path = (
-                    walk[: i + 1]
-                    + (walk[j],)
-                    + tuple(reversed(walk[i + 1 : j]))
-                    + walk[j + 1 :]
+                # inspired by https://en.wikipedia.org/wiki/2-opt#efficient-implementation
+                other_end_i = (i + 1) % self.length
+                other_end_j = (j + 1) % self.length
+                delta_cost = (
+                    self.weights[walk[i]][walk[j]]
+                    + self.weights[walk[other_end_i]][walk[other_end_j]]
+                ) - (
+                    self.weights[walk[i]][walk[other_end_i]]
+                    + self.weights[walk[j]][walk[other_end_j]]
                 )
-                new_cost = self.cost_function(new_path)
 
-                if new_cost < current_cost:
+                if delta_cost < 0 and delta_cost < current_delta_cost:
+                    current_path = (
+                        walk[: i + 1]
+                        + (walk[j],)
+                        + tuple(reversed(walk[i + 1 : j]))
+                        + walk[j + 1 :]
+                    )
+                    current_delta_cost = delta_cost
                     changed = True
-                    current_cost = new_cost
-                    current_path = new_path
+
+        if changed == True:
+            current_cost = self.cost_function(current_path)
 
         return current_path, current_cost, changed
 
@@ -62,13 +77,13 @@ class TSP:
         current_path = self.random_walk(
             start=0, other_locations=list(range(1, self.length))
         )
-        lower_cost = self.cost_function(current_path)
+        lower_cost = 0
         current_is_changed = True
         self.amount_of_neighbour_checked += 1
 
         while current_is_changed == True:
             current_is_changed = False
-            new_path, new_lower, changed = self.get_nxt_lower(current_path, lower_cost)
+            new_path, new_lower, changed = self.get_nxt_lower(current_path)
 
             if changed == True:
                 lower_cost = new_lower
