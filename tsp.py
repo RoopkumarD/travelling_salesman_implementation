@@ -10,7 +10,6 @@ class TSP:
         self.nodes = nodes
         self.weights = weights
         self.length = len(nodes)
-        self.start = 0
         self.amount_of_neighbour_checked = 0
 
     @cache
@@ -19,7 +18,7 @@ class TSP:
         val = 0
         for s in range(self.length - 1):
             val += self.weights[walk[s]][walk[s + 1]]
-        val += self.weights[walk[-1]][self.start]
+        val += self.weights[walk[-1]][0]
         return val
 
     def random_walk(self, start: int, other_locations: List[int]) -> Tuple[int, ...]:
@@ -33,10 +32,9 @@ class TSP:
         # which is taking any two non adjacent edges and swapping them
         # swap them such that, [i, i+1] and [j, j+1] the edge between them is swapped such that
         # [i, j] and [i+1, j+1]
-        current_path = tuple()
         changed = False
+        swap1, swap2 = None, None
         current_delta_cost = 0
-        current_cost = 0
 
         for i in range(self.length - 1):
             max_combine = self.length - 3
@@ -59,38 +57,39 @@ class TSP:
                 )
 
                 if delta_cost < 0 and delta_cost < current_delta_cost:
-                    current_path = (
-                        walk[: i + 1]
-                        + (walk[j],)
-                        + tuple(reversed(walk[i + 1 : j]))
-                        + walk[j + 1 :]
-                    )
+                    swap1 = i
+                    swap2 = j
                     current_delta_cost = delta_cost
                     changed = True
 
-        if changed == True:
-            current_cost = self.cost_function(current_path)
+        current_path = tuple()
+        if changed == True and swap1 != None and swap2 != None:
+            current_path = (
+                walk[: swap1 + 1]
+                + (walk[swap2],)
+                + tuple(reversed(walk[swap1 + 1 : swap2]))
+                + walk[swap2 + 1 :]
+            )
 
-        return current_path, current_cost, changed
+        return current_path, changed
 
     def hill_climb(self):
+        # using 0th posn as starting point
         current_path = self.random_walk(
             start=0, other_locations=list(range(1, self.length))
         )
-        lower_cost = 0
         current_is_changed = True
         self.amount_of_neighbour_checked += 1
 
         while current_is_changed == True:
             current_is_changed = False
-            new_path, new_lower, changed = self.get_nxt_lower(current_path)
+            new_path, changed = self.get_nxt_lower(current_path)
 
             if changed == True:
-                lower_cost = new_lower
                 current_path = new_path
                 current_is_changed = True
 
-        return lower_cost, current_path
+        return self.cost_function(current_path), current_path
 
     @profile
     def random_restart_with_hill_climb(self, iterations: int = 10):
