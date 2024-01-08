@@ -2,7 +2,7 @@ from functools import cache
 from random import shuffle
 from typing import List, Tuple
 
-from profiling import profile
+# from profiling import profile
 
 
 class TSP:
@@ -91,7 +91,7 @@ class TSP:
 
         return self.cost_function(current_path), current_path
 
-    @profile
+    # @profile
     def random_restart_with_hill_climb(self, iterations: int = 10):
         lower = 1000000000000
         a = None
@@ -102,4 +102,9 @@ class TSP:
                 lower = c
                 a = p
 
-        return a, lower
+        final = []
+        if a != None:
+            for elem in a:
+                final += self.nodes[elem]
+
+        return final, lower
