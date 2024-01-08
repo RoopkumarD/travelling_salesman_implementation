@@ -18,14 +18,13 @@ class TSP:
         val = 0
         for s in range(self.length - 1):
             val += self.weights[walk[s]][walk[s + 1]]
-        val += self.weights[walk[-1]][0]
+        val += self.weights[walk[-1]][walk[0]]
         return val
 
-    def random_walk(self, start: int, other_locations: List[int]) -> Tuple[int, ...]:
-        walk = [start]
-        shuffle(other_locations)
-        walk += other_locations
-        return tuple(walk)
+    def random_walk(self, num_of_elem: int) -> Tuple[int, ...]:
+        k = list(range(num_of_elem))
+        shuffle(k)
+        return tuple(k)
 
     def get_nxt_lower(self, walk: Tuple[int, ...]):
         # 2-opt strategy, used chatgpt to understand definition of 2-opt
@@ -75,9 +74,7 @@ class TSP:
 
     def hill_climb(self):
         # using 0th posn as starting point
-        current_path = self.random_walk(
-            start=0, other_locations=list(range(1, self.length))
-        )
+        current_path = self.random_walk(self.length)
         current_is_changed = True
         self.amount_of_neighbour_checked += 1
 
